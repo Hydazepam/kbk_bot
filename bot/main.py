@@ -7,8 +7,8 @@ from telegram.ext import (
     MessageHandler,
     filters
 )
-from ..config import TOKEN, ADMIN_ID, DB_URL
-from database import init_db, save_message, get_user_messages, is_user_authorized
+from bot.config import TOKEN, ADMIN_ID, DB_URL
+from bot.database import init_db, save_message, get_user_messages, is_user_authorized
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привет! Я бот для управления ответами.")
