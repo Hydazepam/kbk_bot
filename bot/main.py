@@ -1,4 +1,5 @@
-from telegram import Update, Bot, ReplyParameters
+from telegram import Update, Bot
+from telegram.constants import ParseMode
 from telegram.ext import (
     ApplicationBuilder,
     ContextTypes,
@@ -25,11 +26,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 user_id=user.id
             )
             
+            # Отправка подтверждения с ответом на исходное сообщение
             await update.message.reply_text(
-                f"Ответ сохранён!",
-                reply_parameters=ReplyParameters(
-                    message_id=update.message.message_id
-                )
+                "✅ Ответ сохранён!",
+                reply_to_message_id=update.message.reply_to_message.message_id
             )
 
 async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
