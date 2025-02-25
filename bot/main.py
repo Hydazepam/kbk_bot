@@ -33,8 +33,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
 async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    if is_user_authorized(user.id):
+  user = update.effective_user
+  if is_user_authorized(user.username):
         messages = get_user_messages(user.id)
         response = "\n\n".join(
             [f"Вопрос: {msg[0]}\nОтвет: {msg[1]}\nДата: {msg[2]}" 

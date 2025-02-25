@@ -1,6 +1,11 @@
 import psycopg2
 from contextlib import contextmanager
-from config import DB_URL
+from bot.config import DB_URL
+
+conn = psycopg2.connect(
+    DB_URL,
+    sslmode="require"
+)
 
 @contextmanager
 def get_db_connection():
@@ -47,11 +52,11 @@ def get_user_messages(user_id):
             """, (user_id,))
             return cur.fetchall()
 
-def is_user_authorized(user_id):
+def is_user_authorized(username: str):
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT 1 FROM authorized_users 
-                WHERE user_id = %s
-            """, (user_id,))
+                WHERE username = %s
+            """, (username,))
             return cur.fetchone() is not None
