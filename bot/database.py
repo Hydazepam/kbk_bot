@@ -52,11 +52,21 @@ def get_user_messages(user_id):
             """, (user_id,))
             return cur.fetchall()
 
-def is_user_authorized(username: str):
+# def is_user_authorized(username: str):
+#     with get_db_connection() as conn:
+#         with conn.cursor() as cur:
+#             cur.execute("""
+#                 SELECT 1 FROM authorized_users 
+#                 WHERE username = %s
+#             """, (username,))
+#             return cur.fetchone() is not None
+
+def is_user_authorized(user_id: int):
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT 1 FROM authorized_users 
-                WHERE username = %s
-            """, (username,))
+                SELECT 1 
+                FROM authorized_users 
+                WHERE user_id = %s  # Исправлено с username на user_id
+            """, (user_id,))
             return cur.fetchone() is not None
