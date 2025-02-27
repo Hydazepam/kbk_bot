@@ -67,6 +67,6 @@ def is_user_authorized(user_id: int):
             cur.execute("""
                 SELECT 1 
                 FROM authorized_users 
-                WHERE user_id = %s  # Исправлено с username на user_id
+                WHERE user_id = %s
             """, (user_id,))
             return cur.fetchone() is not None
