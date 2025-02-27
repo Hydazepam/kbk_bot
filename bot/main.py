@@ -14,9 +14,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привет! Я бот для управления ответами.")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.reply_to_message and update.message.chat.type in ['group', 'supergroup']:
+    if update.message.reply_to_message:
         user = update.effective_user
-        if is_user_authorized(user.id):
+        if is_user_authorized(user.id):  # Передаём числовой ID
+            # логика сохранения
+# async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     if update.message.reply_to_message and update.message.chat.type in ['group', 'supergroup']:
+#         user = update.effective_user
+#         if is_user_authorized(user.id):
             original_msg = update.message.reply_to_message
             reply_text = update.message.text
             
