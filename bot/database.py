@@ -21,13 +21,14 @@ def init_db():
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS messages (
                     id SERIAL PRIMARY KEY,
-                    original_text TEXT,
-                    reply_text TEXT,
-                    user_id INTEGER,
-                    message_date TIMESTAMP
+                    original_text TEXT NOT NULL,
+                    reply_text TEXT NOT NULL,
+                    user_id BIGINT NOT NULL,  -- Исправлено на BIGINT
+                    message_date TIMESTAMP DEFAULT NOW()
                 );
+                
                 CREATE TABLE IF NOT EXISTS authorized_users (
-                    user_id INTEGER PRIMARY KEY,
+                    user_id BIGINT PRIMARY KEY,  -- Исправлено на BIGINT
                     username VARCHAR(255)
                 );
             """)
