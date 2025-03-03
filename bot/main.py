@@ -15,36 +15,40 @@ from bot.database import get_all_messages
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привет! Я бот для управления ответами.")
 
+# async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     if update.message.reply_to_message:
+#         user = update.effective_user
+#         if is_user_authorized(user.id):  # Передаём числовой ID
+#             # логика сохранения
+#             original_msg = update.message.reply_to_message
+#             reply_text = update.message.text
+            
+#             save_message(
+#                 original_text=original_msg.text,
+#                 reply_text=reply_text,
+#                 user_id=user.id
+#             )
+            
+#             # Отправка подтверждения с ответом на исходное сообщение
+#             await update.message.reply_text(
+#                 "✅ Ответ сохранён!",
+#                 reply_to_message_id=update.message.reply_to_message.message_id
+#             )
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.reply_to_message:
+    if update.message.reply_to_message and update.message.chat.type in ['group', 'supergroup']:
         user = update.effective_user
-        if is_user_authorized(user.id):  # Передаём числовой ID
-            # логика сохранения
+        if is_user_authorized(user.id):
             original_msg = update.message.reply_to_message
             reply_text = update.message.text
             
             save_message(
                 original_text=original_msg.text,
-                reply_text=reply_text,
-                user_id=user.id
+                reply_text=reply_text
             )
             
-            # Отправка подтверждения с ответом на исходное сообщение
-            await update.message.reply_text(
-                "✅ Ответ сохранён!",
-                reply_to_message_id=update.message.reply_to_message.message_id
-            )
-
-# async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     user = update.effective_user
-#     if is_user_authorized(user.id):  # Перевірка прав
-#         messages = get_user_messages()
-#         response = "\n\n".join(
-#             [f"❓: {msg[0]}\n✅: {msg[1]}\n📅: {msg[2]}" for msg in messages]
-#         )
-#         await update.message.reply_text(response or "Історія порожня")
-#     else:
-#         await update.message.reply_text("⛔ Ви не маєте доступу до цієї команди!")
+            # Удалите эту строку:
+            # await update.message.reply_text("✅ Ответ сохранён!")
 
 async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
