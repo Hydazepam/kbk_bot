@@ -8,7 +8,7 @@ from telegram.ext import (
     filters
 )
 from bot.config import TOKEN, ADMIN_ID, DB_URL
-from bot.database import init_db, save_message, get_user_messages, is_user_authorized
+from bot.database import init_db, save_message, is_user_authorized
 # В начале файла добавьте:
 from bot.database import get_all_messages
 
