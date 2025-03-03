@@ -14,13 +14,13 @@ from telegram.error import Conflict
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привет! Я бот для управления ответами.")
 
-async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if isinstance(context.error, Conflict):
-        print("⚠️ Обнаружен конфликт версий бота! Останавливаюсь...")
-        await context.application.stop()
-        exit(1)
-    else:
-        print(f"⚠️ Ошибка: {context.error}")
+# async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     if isinstance(context.error, Conflict):
+#         print("⚠️ Обнаружен конфликт версий бота! Останавливаюсь...")
+#         await context.application.stop()
+#         exit(1)
+#     else:
+#         print(f"⚠️ Ошибка: {context.error}")
 
 # if __name__ == "__main__":
 #     application = ApplicationBuilder().token(TOKEN).build()
@@ -67,32 +67,32 @@ async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("⛔ Доступ заборонено!")
 
-# if __name__ == "__main__":
-#     init_db()
-    
-#     application = ApplicationBuilder().token(TOKEN).build()
-    
-#     application.add_handler(CommandHandler("start", start))
-#     application.add_handler(CommandHandler("history", show_history))
-#     application.add_handler(MessageHandler(
-#         filters.TEXT & ~filters.COMMAND & filters.ChatType.GROUPS,
-#         handle_message
-#     ))
-    
-#     application.run_polling()
-
 if __name__ == "__main__":
+    init_db()
+    
     application = ApplicationBuilder().token(TOKEN).build()
-      
-    # Регистрация обработчиков
-    application.add_error_handler(error_handler)
+    
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("history", show_history))
-    application.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS, handle_message))
+    application.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND & filters.ChatType.GROUPS,
+        handle_message
+    ))
+    
+    application.run_polling()
+
+# if __name__ == "__main__":
+#     application = ApplicationBuilder().token(TOKEN).build()
       
-    # Запуск с контролем версий
-    application.run_polling(
-      stop_signals=(SIGINT, SIGTERM),
-      close_loop=False,
-      drop_pending_updates=True  # Игнорировать старые сообщения
-    )
+#     # Регистрация обработчиков
+#     application.add_error_handler(error_handler)
+#     application.add_handler(CommandHandler("start", start))
+#     application.add_handler(CommandHandler("history", show_history))
+#     application.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS, handle_message))
+      
+#     # Запуск с контролем версий
+#     application.run_polling(
+#       stop_signals=(SIGINT, SIGTERM),
+#       close_loop=False,
+#       drop_pending_updates=True  # Игнорировать старые сообщения
+#     )
