@@ -8,32 +8,35 @@ from telegram.ext import (
     filters
 )
 from bot.config import TOKEN, ADMIN_ID, DB_URL
-from bot.database import init_db, save_message, is_user_authorized
-# В начале файла добавьте:
-from bot.database import get_all_messages
+from bot.database import init_db, save_message, get_all_messages, is_user_authorized
+from telegram.error import Conflict
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привет! Я бот для управления ответами.")
 
-# async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     if update.message.reply_to_message:
-#         user = update.effective_user
-#         if is_user_authorized(user.id):  # Передаём числовой ID
-#             # логика сохранения
-#             original_msg = update.message.reply_to_message
-#             reply_text = update.message.text
-            
-#             save_message(
-#                 original_text=original_msg.text,
-#                 reply_text=reply_text,
-#                 user_id=user.id
-#             )
-            
-#             # Отправка подтверждения с ответом на исходное сообщение
-#             await update.message.reply_text(
-#                 "✅ Ответ сохранён!",
-#                 reply_to_message_id=update.message.reply_to_message.message_id
-#             )
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if isinstance(context.error, Conflict):
+        print("⚠️ Обнаружен конфликт версий бота! Останавливаюсь...")
+        await context.application.stop()
+        exit(1)
+    else:
+        print(f"⚠️ Ошибка: {context.error}")
+
+if __name__ == "__main__":
+    application = ApplicationBuilder().token(TOKEN).build()
+    
+    # Регистрация обработчиков
+    application.add_error_handler(error_handler)
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("history", show_history))
+    application.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS, handle_message))
+    
+    # Запуск с контролем версий
+    application.run_polling(
+        stop_signals=(SIGINT, SIGTERM),
+        close_loop=False,
+        drop_pending_updates=True  # Игнорировать старые сообщения
+    )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.reply_to_message and update.message.chat.type in ['group', 'supergroup']:

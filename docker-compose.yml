@@ -7,6 +7,9 @@ services:
       - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
       - DATABASE_URL=${DATABASE_URL}
       - ADMIN_ID=${ADMIN_ID}
+    restart: unless-stopped
+    deploy:
+      replicas: 1  # Явно указываем только одну реплику
     networks:
       - backend
     depends_on:
