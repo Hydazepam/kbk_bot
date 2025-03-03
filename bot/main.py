@@ -31,7 +31,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             save_message(
                 original_text=original_msg.text,
-                reply_text=reply_text
+                reply_text=reply_text,
                 user_id=user.id
             )
             
