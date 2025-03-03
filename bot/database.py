@@ -43,14 +43,24 @@ def save_message(original_text, reply_text, user_id):
             """, (original_text, reply_text, user_id))
             conn.commit()
 
-def get_user_messages(user_id):
+# def get_user_messages(user_id):
+#     with get_db_connection() as conn:
+#         with conn.cursor() as cur:
+#             cur.execute("""
+#                 SELECT original_text, reply_text, message_date 
+#                 FROM messages 
+#                 WHERE user_id = %s
+#             """, (user_id,))
+#             return cur.fetchall()
+
+def get_all_messages():
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT original_text, reply_text, message_date 
-                FROM messages 
-                WHERE user_id = %s
-            """, (user_id,))
+                FROM messages
+                ORDER BY message_date DESC
+            """)
             return cur.fetchall()
 
 def is_user_authorized(user_id: int):
@@ -62,4 +72,3 @@ def is_user_authorized(user_id: int):
                 WHERE user_id = %s
             """, (user_id,))
             return cur.fetchone() is not None
-            

@@ -9,6 +9,8 @@ from telegram.ext import (
 )
 from bot.config import TOKEN, ADMIN_ID, DB_URL
 from bot.database import init_db, save_message, get_user_messages, is_user_authorized
+# В начале файла добавьте:
+from bot.database import get_all_messages
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привет! Я бот для управления ответами.")
@@ -33,16 +35,30 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_to_message_id=update.message.reply_to_message.message_id
             )
 
+# async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     user = update.effective_user
+#     if is_user_authorized(user.id):  # Перевірка прав
+#         messages = get_user_messages()
+#         response = "\n\n".join(
+#             [f"❓: {msg[0]}\n✅: {msg[1]}\n📅: {msg[2]}" for msg in messages]
+#         )
+#         await update.message.reply_text(response or "Історія порожня")
+#     else:
+#         await update.message.reply_text("⛔ Ви не маєте доступу до цієї команди!")
+
 async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    if is_user_authorized(user.id):  # Перевірка прав
-        messages = get_all_messages()
+    if is_user_authorized(user.id):
+        messages = get_all_messages()  # Теперь функция доступна
+        
         response = "\n\n".join(
-            [f"❓: {msg[0]}\n✅: {msg[1]}\n📅: {msg[2]}" for msg in messages]
+            [f"❓: {msg[0]}\n✅: {msg[1]}\n📅: {msg[2]}" 
+             for msg in messages]
         )
+        
         await update.message.reply_text(response or "Історія порожня")
     else:
-        await update.message.reply_text("⛔ Ви не маєте доступу до цієї команди!")
+        await update.message.reply_text("⛔ Доступ заборонено!")
 
 if __name__ == "__main__":
     init_db()
