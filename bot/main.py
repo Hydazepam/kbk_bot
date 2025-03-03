@@ -18,10 +18,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
         if is_user_authorized(user.id):  # Передаём числовой ID
             # логика сохранения
-# async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     if update.message.reply_to_message and update.message.chat.type in ['group', 'supergroup']:
-#         user = update.effective_user
-#         if is_user_authorized(user.id):
             original_msg = update.message.reply_to_message
             reply_text = update.message.text
             
@@ -38,15 +34,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
 async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  user = update.effective_user
-  # if is_user_authorized(user.username):
-  if is_user_authorized(user.id):
-        messages = get_user_messages(user.id)
+    user = update.effective_user
+    if is_user_authorized(user.id):  # Перевірка прав
+        messages = get_all_messages()
         response = "\n\n".join(
-            [f"Вопрос: {msg[0]}\nОтвет: {msg[1]}\nДата: {msg[2]}" 
-             for msg in messages]
+            [f"❓: {msg[0]}\n✅: {msg[1]}\n📅: {msg[2]}" for msg in messages]
         )
-        await update.message.reply_text(response or "Нет сохранённых сообщений")
+        await update.message.reply_text(response or "Історія порожня")
+    else:
+        await update.message.reply_text("⛔ Ви не маєте доступу до цієї команди!")
 
 if __name__ == "__main__":
     init_db()
