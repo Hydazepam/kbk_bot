@@ -22,21 +22,21 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         print(f"⚠️ Ошибка: {context.error}")
 
-if __name__ == "__main__":
-    application = ApplicationBuilder().token(TOKEN).build()
+# if __name__ == "__main__":
+#     application = ApplicationBuilder().token(TOKEN).build()
     
-    # Регистрация обработчиков
-    application.add_error_handler(error_handler)
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("history", show_history))
-    application.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS, handle_message))
+#     # Регистрация обработчиков
+#     application.add_error_handler(error_handler)
+#     application.add_handler(CommandHandler("start", start))
+#     application.add_handler(CommandHandler("history", show_history))
+#     application.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS, handle_message))
     
-    # Запуск с контролем версий
-    application.run_polling(
-        stop_signals=(SIGINT, SIGTERM),
-        close_loop=False,
-        drop_pending_updates=True  # Игнорировать старые сообщения
-    )
+#     # Запуск с контролем версий
+#     application.run_polling(
+#         stop_signals=(SIGINT, SIGTERM),
+#         close_loop=False,
+#         drop_pending_updates=True  # Игнорировать старые сообщения
+#     )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.reply_to_message and update.message.chat.type in ['group', 'supergroup']:
