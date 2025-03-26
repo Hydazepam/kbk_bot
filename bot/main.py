@@ -14,12 +14,6 @@ from telegram.error import Conflict
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привіт! Я бот для управління відповідями.")
 
-async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    error = f"⚠️ Ошибка: {context.error}"
-    print(error)
-    if update.effective_message:
-        await update.effective_message.reply_text(error[:4000])
-
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.reply_to_message and update.message.chat.type in ['group', 'supergroup']:
         user = update.effective_user
@@ -36,28 +30,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_admin_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if is_user_authorized(user.id):
-        # Зберігаємо повідомлення адміна як окремий запис
         save_message(
             original_text="Адмін: " + update.message.text,
             reply_text="",
             user_id=user.id,
-            is_private=True
+            is_private=True  # Явно указываем параметр
         )
-        await update.message.reply_text("📝 Ваше повідомлення збережено!")
 
-# async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     user = update.effective_user
-#     if is_user_authorized(user.id):
-#         messages = get_all_messages()  # Теперь функция доступна
-        
-#         response = "\n\n".join(
-#             [f"❓: {msg[0]}\n✅: {msg[1]}\n📅: {msg[2]}" 
-#              for msg in messages]
-#         )
-        
-#         await update.message.reply_text(response or "Історія порожня")
-#     else:
-#         await update.message.reply_text("⛔ Доступ заборонено!")
 async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     if is_user_authorized(user.id):
@@ -81,6 +60,14 @@ async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(f"⛔ Помилка: {str(e)}")
     else:
         await update.message.reply_text("⛔ Доступ заборонено!")
+
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if isinstance(context.error, Conflict):
+        print("⚠️ Виявлено конфлікт версій! Зупиняю всі процеси...")
+        await context.application.stop()
+        os._exit(1)  # Примусовий вихід
+    else:
+        print(f"⚠️ Невідома помилка: {context.error}")
 
 if __name__ == "__main__":
     init_db()
