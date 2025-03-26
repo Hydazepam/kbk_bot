@@ -1,11 +1,12 @@
 import os
 import signal
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
     ContextTypes,
     CommandHandler,
     MessageHandler,
+    CallbackQueryHandler,
     filters
 )
 from bot.config import TOKEN, ADMIN_ID, DB_URL
@@ -47,20 +48,41 @@ async def handle_admin_message(update: Update, context: ContextTypes.DEFAULT_TYP
         )
 
 async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Виведення всієї історії повідомлень (як з групових чатів, так і приватних)
-    user = update.effective_user
-    if is_user_authorized(user.id):
-        try:
-            messages = get_all_messages()  # Отримуємо усю історію
-            response = "\n\n".join(
-                [f"❓: {msg[0]}\n✅: {msg[1]}\n📅: {msg[2]}" + ("\n🔒 Private" if msg[3] else "")
-                 for msg in messages]
-            )
-            await update.message.reply_text(response or "Історія порожня")
-        except Exception as e:
-            await update.message.reply_text(f"⛔ Помилка: {str(e)}")
+    # Ця функція більше не використовується, адже історію можна отримати через меню з кнопками.
+    await update.message.reply_text("Використовуйте команду /menu для перегляду історії.")
+
+async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Створюємо inline клавіатуру з двома кнопками
+    keyboard = [
+        [InlineKeyboardButton("Загальна історія", callback_data="general_history")],
+        [InlineKeyboardButton("Історія повідомлень в особисті", callback_data="private_history")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("Виберіть, яку історію переглянути:", reply_markup=reply_markup)
+
+async def handle_history_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()  # обов'язково відповідаємо, щоб зник індикатор очікування
+    messages = get_all_messages()
+    
+    if query.data == "general_history":
+        # Фільтруємо лише записи з is_private=False
+        filtered = [msg for msg in messages if not msg[3]]
+        label = "Загальна історія"
+    elif query.data == "private_history":
+        # Фільтруємо лише записи з is_private=True
+        filtered = [msg for msg in messages if msg[3]]
+        label = "Історія повідомлень в особисті"
     else:
-        await update.message.reply_text("⛔ Доступ заборонено!")
+        filtered = []
+        label = ""
+        
+    response = "\n\n".join(
+        [f"❓: {msg[0]}\n✅: {msg[1]}\n📅: {msg[2]}" for msg in filtered]
+    )
+    if not response:
+        response = "Історія порожня"
+    await query.edit_message_text(text=f"{label}:\n\n{response}")
 
 if __name__ == "__main__":
     # Ініціалізація бази даних
@@ -69,11 +91,13 @@ if __name__ == "__main__":
     # Створення додатку
     application = ApplicationBuilder().token(TOKEN).build()
     
-    # Реєстрація команд та обробників повідомлень
+    # Реєстрація команд та обробників
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("menu", menu))
     application.add_handler(CommandHandler("history", show_history))
     application.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS, handle_message))
     application.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE, handle_admin_message))
+    application.add_handler(CallbackQueryHandler(handle_history_buttons))
     application.add_error_handler(error_handler)
     
     # Запуск бота з обробкою сигналів завершення
