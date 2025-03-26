@@ -12,7 +12,7 @@ from bot.config import TOKEN, ADMIN_ID, DB_URL
 from bot.database import init_db, save_message, get_all_messages, is_user_authorized
 from telegram.error import Conflict
 
-# Постійна клавіатура для приватного чату з новими назвами кнопок
+# Постійна клавіатура для приватного чату з кнопками
 persistent_keyboard = ReplyKeyboardMarkup(
     [["chat mssg", "private mssg"]],
     one_time_keyboard=False,
@@ -36,21 +36,24 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         os.kill(os.getpid(), signal.SIGTERM)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Обробка повідомлень у групових чатах (адмін відповідає на повідомлення)
+    # Обробка повідомлень у групових чатах:
+    # Бот зберігатиме відповідь лише тоді, коли адмін відмічає бота (тобто, у тексті є згадка @bot_username)
     if update.message.reply_to_message and update.message.chat.type in ['group', 'supergroup']:
         user = update.effective_user
         if is_user_authorized(user.id):
-            original_msg = update.message.reply_to_message
-            reply_text = update.message.text
-            save_message(
-                original_text=original_msg.text,
-                reply_text=reply_text,
-                user_id=user.id,
-                is_private=False
-            )
+            bot_username = context.bot.username  # Отримуємо ім'я бота
+            if "@" + bot_username in update.message.text:
+                original_msg = update.message.reply_to_message
+                reply_text = update.message.text
+                save_message(
+                    original_text=original_msg.text,
+                    reply_text=reply_text,
+                    user_id=user.id,
+                    is_private=False
+                )
 
 async def handle_admin_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Обробка приватних повідомлень, які НЕ відповідають варіантам з клавіатури
+    # Обробка приватних повідомлень (без змін)
     user = update.effective_user
     if is_user_authorized(user.id) and update.message.text not in ["chat mssg", "private mssg"]:
         save_message(
@@ -62,7 +65,7 @@ async def handle_admin_message(update: Update, context: ContextTypes.DEFAULT_TYP
         await update.message.reply_text("Повідомлення збережено.", reply_markup=persistent_keyboard)
 
 async def handle_history_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Обробка натискання кнопок (повідомлення дорівнює тексту кнопки)
+    # Обробка вибору з клавіатури (повідомлення дорівнює тексту кнопки)
     text = update.message.text
     messages = get_all_messages()
     if text == "chat mssg":
@@ -90,7 +93,7 @@ if __name__ == "__main__":
     
     # Реєстрація команд та обробників
     application.add_handler(CommandHandler("start", start))
-    # Хендлер, який спрацьовує, коли у приватному чаті отримуємо повідомлення, що збігається з текстом кнопок
+    # Хендлер для вибору історії через клавіатуру (фільтр для точного співпадіння тексту кнопок)
     application.add_handler(MessageHandler(
         filters.TEXT & filters.ChatType.PRIVATE & filters.Regex("^(chat mssg|private mssg)$"),
         handle_history_choice
