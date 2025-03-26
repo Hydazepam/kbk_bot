@@ -15,12 +15,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привіт! Я бот для управління відповідями.")
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if isinstance(context.error, Conflict):
-        print("⚠️ Запущено декілька екземплярів бота! Зупиняю...")
-        await context.application.stop()
-        exit(1)
-    else:
-        print(f"⚠️ Помилка: {context.error}")
+    error = f"⚠️ Ошибка: {context.error}"
+    print(error)
+    if update.effective_message:
+        await update.effective_message.reply_text(error[:4000])
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.reply_to_message and update.message.chat.type in ['group', 'supergroup']:

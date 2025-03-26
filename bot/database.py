@@ -34,13 +34,19 @@ def init_db():
             """)
             conn.commit()
 
-def save_message(original_text, reply_text, user_id):
+def save_message(
+    original_text: str, 
+    reply_text: str, 
+    user_id: int, 
+    is_private: bool = False  # Добавляем новый параметр
+):
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                INSERT INTO messages (original_text, reply_text, user_id, message_date)
-                VALUES (%s, %s, %s, NOW())
-            """, (original_text, reply_text, user_id))
+                INSERT INTO messages 
+                (original_text, reply_text, user_id, is_private, message_date)
+                VALUES (%s, %s, %s, %s, NOW())
+            """, (original_text, reply_text, user_id, is_private))
             conn.commit()
 
 def get_all_messages():
