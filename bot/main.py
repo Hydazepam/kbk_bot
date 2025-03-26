@@ -32,7 +32,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if isinstance(context.error, Conflict):
         print("🛑 Конфлікт виявлено! Виконую перезапуск...")
-        await application.stop()
+        try:
+            await application.stop()
+        except RuntimeError as e:
+            print("Application is not running:", e)
         os.kill(os.getpid(), signal.SIGTERM)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
