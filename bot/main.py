@@ -1,3 +1,5 @@
+import os
+import signal
 from telegram import Update, Bot
 from telegram.constants import ParseMode
 from telegram.ext import (
@@ -11,8 +13,26 @@ from bot.config import TOKEN, ADMIN_ID, DB_URL
 from bot.database import get_db_connection, init_db, save_message, get_all_messages, is_user_authorized
 from telegram.error import Conflict
 
+# Глобальний прапорець для контролю циклу
+running = True
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Привіт! Я бот для управління відповідями.")
+
+async def stop_application():
+    global running
+    running = False
+
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if isinstance(context.error, Conflict):
+        print("🛑 Конфлікт виявлено! Виконую перезапуск...")
+        await application.stop()
+        os.kill(os.getpid(), signal.SIGTERM)
+
+async def handle_shutdown(signum, frame):
+    print("🔴 Отримано сигнал завершення")
+    await application.stop()
+    exit(0)
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.reply_to_message and update.message.chat.type in ['group', 'supergroup']:
@@ -61,34 +81,61 @@ async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("⛔ Доступ заборонено!")
 
-async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if isinstance(context.error, Conflict):
-        print("⚠️ Виявлено конфлікт версій! Зупиняю всі процеси...")
-        await context.application.stop()
-        os._exit(1)  # Примусовий вихід
-    else:
-        print(f"⚠️ Невідома помилка: {context.error}")
-
 if __name__ == "__main__":
+    # Ініціалізація БД
     init_db()
     
+    # Створення додатку
     application = ApplicationBuilder().token(TOKEN).build()
     
+    # Реєстрація обробників
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("history", show_history))
-    application.add_handler(MessageHandler(
-        filters.TEXT & ~filters.COMMAND & filters.ChatType.GROUPS,
-        handle_message
-    ))
-    application.add_handler(
-        MessageHandler(
-            filters.TEXT & filters.ChatType.PRIVATE & ~filters.COMMAND,
-            handle_admin_message
-        )
-    )    
-    application.run_polling(
-#       stop_signals=(SIGINT, SIGTERM),
-#       close_loop=False,
-#       drop_pending_updates=True  # Игнорировать старые сообщения
-    )
+    application.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS, handle_message))
     application.add_error_handler(error_handler)
+    
+    # Обробка сигналів
+    signal.signal(signal.SIGINT, handle_shutdown)
+    signal.signal(signal.SIGTERM, handle_shutdown)
+    
+    # Запуск з автоматичним перезапуском
+    while running:
+        try:
+            await application.initialize()
+            await application.start()
+            await application.updater.start_polling(
+                drop_pending_updates=True,
+                allowed_updates=Update.ALL_TYPES
+            )
+            while running:
+                await asyncio.sleep(1)
+        except Conflict as e:
+            print(f"⚠️ Конфлікт: {e}")
+            await application.stop()
+            await asyncio.sleep(5)  # Затримка перед перезапуском
+        finally:
+            await application.stop()
+
+# if __name__ == "__main__":
+#     init_db()
+    
+#     application = ApplicationBuilder().token(TOKEN).build()
+    
+#     application.add_handler(CommandHandler("start", start))
+#     application.add_handler(CommandHandler("history", show_history))
+#     application.add_handler(MessageHandler(
+#         filters.TEXT & ~filters.COMMAND & filters.ChatType.GROUPS,
+#         handle_message
+#     ))
+#     application.add_handler(
+#         MessageHandler(
+#             filters.TEXT & filters.ChatType.PRIVATE & ~filters.COMMAND,
+#             handle_admin_message
+#         )
+#     )    
+#     application.run_polling(
+# #       stop_signals=(SIGINT, SIGTERM),
+# #       close_loop=False,
+# #       drop_pending_updates=True  # Игнорировать старые сообщения
+#     )
+#     application.add_error_handler(error_handler)
