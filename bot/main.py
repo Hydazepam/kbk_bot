@@ -73,8 +73,9 @@ async def handle_history_choice(update: Update, context: ContextTypes.DEFAULT_TY
         label = "Історія повідомлень в особисті"
     else:
         return
+    # Форматуємо дату: година, хвилина, число, місяць, рік
     response = "\n\n".join(
-        [f"❓: {msg[0]}\n✅: {msg[1]}\n📅: {msg[2]}" for msg in filtered]
+        [f"❓: {msg[0]}\n✅: {msg[1]}\n📅: {msg[2].strftime('%H:%M %d.%m.%Y')}" for msg in filtered]
     )
     if not response:
         response = "Історія порожня"
