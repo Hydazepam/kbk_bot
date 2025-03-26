@@ -1,20 +1,33 @@
 import os
 import signal
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
     ContextTypes,
     CommandHandler,
     MessageHandler,
-    CallbackQueryHandler,
     filters
 )
 from bot.config import TOKEN, ADMIN_ID, DB_URL
 from bot.database import init_db, save_message, get_all_messages, is_user_authorized
 from telegram.error import Conflict
 
+# Постійна клавіатура для приватного чату
+persistent_keyboard = ReplyKeyboardMarkup(
+    [["Загальна історія", "Історія повідомлень в особисті"]],
+    one_time_keyboard=False,
+    resize_keyboard=True
+)
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привіт! Я бот для управління відповідями.")
+    # В приватному чаті надсилаємо повідомлення з постійною клавіатурою
+    if update.message.chat.type == "private":
+        await update.message.reply_text(
+            "Привіт! Я бот для управління відповідями. Оберіть опцію:",
+            reply_markup=persistent_keyboard
+        )
+    else:
+        await update.message.reply_text("Привіт! Я бот для управління відповідями.")
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if isinstance(context.error, Conflict):
@@ -37,52 +50,35 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
 async def handle_admin_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Обробка приватних повідомлень від адміна
+    # Обробка приватних повідомлень, які НЕ відповідають варіантам з клавіатури
     user = update.effective_user
-    if is_user_authorized(user.id):
+    if is_user_authorized(user.id) and update.message.text not in ["Загальна історія", "Історія повідомлень в особисті"]:
         save_message(
             original_text=update.message.text,
             reply_text="",
             user_id=user.id,
             is_private=True
         )
+        await update.message.reply_text("Повідомлення збережено.", reply_markup=persistent_keyboard)
 
-async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Ця функція більше не використовується, адже історію можна отримати через меню з кнопками.
-    await update.message.reply_text("Використовуйте команду /menu для перегляду історії.")
-
-async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Створюємо inline клавіатуру з двома кнопками
-    keyboard = [
-        [InlineKeyboardButton("Загальна історія", callback_data="general_history")],
-        [InlineKeyboardButton("Історія повідомлень в особисті", callback_data="private_history")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Виберіть, яку історію переглянути:", reply_markup=reply_markup)
-
-async def handle_history_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()  # обов'язково відповідаємо, щоб зник індикатор очікування
+async def handle_history_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Обробка натискання кнопок (повідомлення дорівнює тексту кнопки)
+    text = update.message.text
     messages = get_all_messages()
-    
-    if query.data == "general_history":
-        # Фільтруємо лише записи з is_private=False
-        filtered = [msg for msg in messages if not msg[3]]
+    if text == "Загальна історія":
+        filtered = [msg for msg in messages if not msg[3]]  # is_private=False
         label = "Загальна історія"
-    elif query.data == "private_history":
-        # Фільтруємо лише записи з is_private=True
-        filtered = [msg for msg in messages if msg[3]]
+    elif text == "Історія повідомлень в особисті":
+        filtered = [msg for msg in messages if msg[3]]  # is_private=True
         label = "Історія повідомлень в особисті"
     else:
-        filtered = []
-        label = ""
-        
+        return
     response = "\n\n".join(
         [f"❓: {msg[0]}\n✅: {msg[1]}\n📅: {msg[2]}" for msg in filtered]
     )
     if not response:
         response = "Історія порожня"
-    await query.edit_message_text(text=f"{label}:\n\n{response}")
+    await update.message.reply_text(f"{label}:\n\n{response}", reply_markup=persistent_keyboard)
 
 if __name__ == "__main__":
     # Ініціалізація бази даних
@@ -93,11 +89,15 @@ if __name__ == "__main__":
     
     # Реєстрація команд та обробників
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("menu", menu))
-    application.add_handler(CommandHandler("history", show_history))
-    application.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS, handle_message))
+    # Хендлер, який спрацьовує, коли у приватному чаті отримуємо повідомлення, що збігається з текстом кнопок
+    application.add_handler(MessageHandler(
+        filters.TEXT & filters.ChatType.PRIVATE & filters.Regex("^(Загальна історія|Історія повідомлень в особисті)$"),
+        handle_history_choice
+    ))
+    # Обробка інших приватних повідомлень (не з клавіатури)
     application.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE, handle_admin_message))
-    application.add_handler(CallbackQueryHandler(handle_history_buttons))
+    # Обробка повідомлень у групових чатах
+    application.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS, handle_message))
     application.add_error_handler(error_handler)
     
     # Запуск бота з обробкою сигналів завершення
