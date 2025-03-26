@@ -2,11 +2,6 @@ import psycopg2
 from contextlib import contextmanager
 from bot.config import DB_URL
 
-conn = psycopg2.connect(
-    DB_URL,
-    sslmode="require"
-)
-
 @contextmanager
 def get_db_connection():
     conn = psycopg2.connect(DB_URL)
@@ -23,23 +18,19 @@ def init_db():
                     id SERIAL PRIMARY KEY,
                     original_text TEXT NOT NULL,
                     reply_text TEXT NOT NULL,
-                    user_id BIGINT NOT NULL,  -- Исправлено на BIGINT
-                    message_date TIMESTAMP DEFAULT NOW()
+                    user_id BIGINT NOT NULL,
+                    message_date TIMESTAMP DEFAULT NOW(),
+                    is_private BOOLEAN DEFAULT FALSE
                 );
                 
                 CREATE TABLE IF NOT EXISTS authorized_users (
-                    user_id BIGINT PRIMARY KEY,  -- Исправлено на BIGINT
+                    user_id BIGINT PRIMARY KEY,
                     username VARCHAR(255)
                 );
             """)
             conn.commit()
 
-def save_message(
-    original_text: str, 
-    reply_text: str, 
-    user_id: int, 
-    is_private: bool = False  # Добавляем новый параметр
-):
+def save_message(original_text, reply_text, user_id, is_private=False):
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""
@@ -53,7 +44,7 @@ def get_all_messages():
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT original_text, reply_text, message_date 
+                SELECT original_text, reply_text, message_date, is_private 
                 FROM messages
                 ORDER BY message_date DESC
             """)
