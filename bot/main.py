@@ -12,9 +12,9 @@ from bot.config import TOKEN, ADMIN_ID, DB_URL
 from bot.database import init_db, save_message, get_all_messages, is_user_authorized
 from telegram.error import Conflict
 
-# Постійна клавіатура для приватного чату
+# Постійна клавіатура для приватного чату з новими назвами кнопок
 persistent_keyboard = ReplyKeyboardMarkup(
-    [["Загальна історія", "Історія повідомлень в особисті"]],
+    [["chat mssg", "private mssg"]],
     one_time_keyboard=False,
     resize_keyboard=True
 )
@@ -52,7 +52,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_admin_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Обробка приватних повідомлень, які НЕ відповідають варіантам з клавіатури
     user = update.effective_user
-    if is_user_authorized(user.id) and update.message.text not in ["Загальна історія", "Історія повідомлень в особисті"]:
+    if is_user_authorized(user.id) and update.message.text not in ["chat mssg", "private mssg"]:
         save_message(
             original_text=update.message.text,
             reply_text="",
@@ -65,12 +65,12 @@ async def handle_history_choice(update: Update, context: ContextTypes.DEFAULT_TY
     # Обробка натискання кнопок (повідомлення дорівнює тексту кнопки)
     text = update.message.text
     messages = get_all_messages()
-    if text == "Загальна історія":
+    if text == "chat mssg":
         filtered = [msg for msg in messages if not msg[3]]  # is_private=False
-        label = "Загальна історія"
-    elif text == "Історія повідомлень в особисті":
+        label = "chat mssg"
+    elif text == "private mssg":
         filtered = [msg for msg in messages if msg[3]]  # is_private=True
-        label = "Історія повідомлень в особисті"
+        label = "private mssg"
     else:
         return
     # Форматуємо дату: година, хвилина, число, місяць, рік
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     application.add_handler(CommandHandler("start", start))
     # Хендлер, який спрацьовує, коли у приватному чаті отримуємо повідомлення, що збігається з текстом кнопок
     application.add_handler(MessageHandler(
-        filters.TEXT & filters.ChatType.PRIVATE & filters.Regex("^(Загальна історія|Історія повідомлень в особисті)$"),
+        filters.TEXT & filters.ChatType.PRIVATE & filters.Regex("^(chat mssg|private mssg)$"),
         handle_history_choice
     ))
     # Обробка інших приватних повідомлень (не з клавіатури)
